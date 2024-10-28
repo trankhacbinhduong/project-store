@@ -1,0 +1,26 @@
+steps:
+  - id: 'build-image'
+    name: 'gcr.io/cloud-builders/docker'
+    script: |
+      docker build -t --image ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY}/${_DOCKER_IMAGE}:latest -f ${_DOCKER_FILE} .
+
+  - id: 'deploy'
+    name: 'gcr.io/cloud-builders/gcloud'
+    waitFor: ['build-image']
+    script: |
+      gcloud run deploy ${_SERVICE_NAME} \
+        --image ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_DOCKER_REPOSITORY}/${_DOCKER_IMAGE}:latest \
+        --no-allow-unauthenticated \
+        --region ${_REGION} \
+        --platform managed \
+        --timeout 1000
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _REGION: us-central1
+  _SERVICE_NAME: nuxt-pg
+  _DOCKER_FILE: ./cicd/release/Dockerfile
+  _DOCKER_REPOSITORY: nuxt-pg-repository
+  _DOCKER_IMAGE: nuxt-pg-image
